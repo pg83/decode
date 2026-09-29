@@ -78,9 +78,9 @@ jobs:
           last=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName \
             --jq '[.[].tagName | select(test("^[1-9][0-9]*$")) | tonumber] | max // 0')
           tag=$((last + 1))
-          notes="decode.wasm from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA
-
-$(sha256sum "$RUNNER_TEMP/out/decode.wasm.zstd" | cut -d' ' -f1)  decode.wasm.zstd"
+          sum=$(sha256sum "$RUNNER_TEMP/out/decode.wasm.zstd" | cut -d' ' -f1)
+          notes="decode.wasm from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA"
+          notes="$notes"$'\n\n'"$sum  decode.wasm.zstd"
           gh release create "$tag" "$RUNNER_TEMP/out/decode.wasm.zstd" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "$tag" --notes "$notes"
