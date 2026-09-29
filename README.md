@@ -21,21 +21,3 @@ wasm stack in mind: the module is linked with `-z stack-size=8388608`.
 
 Formats: PNG, JPEG, WebP, TIFF, JPEG 2000, JPEG XL, GIF, BMP, PNM/PAM,
 TGA, PCX, SGI, MIFF and the other coders built into ImageMagick.
-
-## Releases
-
-Every commit on `main` is a release: the workflow builds the module
-through ix at the revision pinned in `build.sh`, runs the module's own
-tests (30 images against the host ImageMagick, 16 broken files) and
-publishes `decode.wasm.zstd` as the next numeric tag.
-
-To move to a newer ix, change `IX_REV` in `build.sh` and commit.
-
-## Building locally
-
-    ./build.sh out
-
-needs the system tools ix uses under `all_system` (clang, lld, llvm,
-cmake, ninja, make, meson, perl, python3, pkg-config, m4), imagemagick
-and zstd. The first build compiles the whole wasm toolchain and the
-codecs from source; count on an hour on four cores.
