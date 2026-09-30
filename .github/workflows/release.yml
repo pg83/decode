@@ -1,7 +1,8 @@
 name: Release
 
 # Every commit on main is a release: build decode.wasm through IX at the
-# revision pinned in build.sh, then publish it as the next numeric tag.
+# revision pinned in build.sh, plain and with simd128, then publish both as
+# the next numeric tag.
 on:
   push:
     branches:
@@ -79,15 +80,18 @@ jobs:
           last=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName \
             --jq '[.[].tagName | select(test("^[1-9][0-9]*$")) | tonumber] | max // 0')
           tag=$((last + 1))
-          sum=$(sha256sum "$RUNNER_TEMP/out/decode.wasm.zstd" | cut -d' ' -f1)
+          sums=$(cd "$RUNNER_TEMP/out" && sha256sum decode.wasm.zstd decode.simd128.wasm.zstd)
           notes="decode.wasm from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA"
-          notes="$notes"$'\n\n'"$sum  decode.wasm.zstd"
-          gh release create "$tag" "$RUNNER_TEMP/out/decode.wasm.zstd" \
+          notes="$notes"$'\n\n'"$sums"
+          gh release create "$tag" \
+            "$RUNNER_TEMP/out/decode.wasm.zstd" "$RUNNER_TEMP/out/decode.simd128.wasm.zstd" \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "$tag" --notes "$notes"
           echo "released $tag"
 
-      - name: Attest the artifact
+      - name: Attest the artifacts
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: ${{ runner.temp }}/out/decode.wasm.zstd
+          subject-path: |
+            ${{ runner.temp }}/out/decode.wasm.zstd
+            ${{ runner.temp }}/out/decode.simd128.wasm.zstd

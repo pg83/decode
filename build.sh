@@ -1,7 +1,7 @@
 #!/bin/sh
-# Builds decode.wasm through IX and writes decode.wasm.zstd into the given
-# directory. To move to a newer IX, change IX_REV and commit: every commit
-# on main is a release.
+# Builds decode.wasm through IX, twice, and writes decode.wasm.zstd and
+# decode.simd128.wasm.zstd into the given directory. To move to a newer IX,
+# change IX_REV and commit: every commit on main is a release.
 #
 #   ./build.sh OUT_DIR
 #
@@ -11,7 +11,7 @@
 
 set -eu
 
-IX_REV=80eb828902d0d1730a2f1406e4c2fa9f9ac1bd57
+IX_REV=a3f06b9bd6714284ad2669f1f4d03f6f1399ae68
 IX_REPO=https://github.com/pg83/ix
 
 if [ "$#" -ne 1 ]; then
@@ -39,8 +39,16 @@ export IX_FLAGS="${IX_FLAGS:-all_system=1}"
 export IX_ROOT="${IX_ROOT:-$here/.ix-root}"
 export IX_THREADS="${IX_THREADS:-4}"
 
-"$ix/ix" run set/wasm/decode -- sh -c '
-    set -eu
-    zstd -19 -f -q -o "$1/decode.wasm.zstd" "$IX_IMAGE_MAGICK_DECODE_WASM"
-    sha256sum "$IX_IMAGE_MAGICK_DECODE_WASM" "$1/decode.wasm.zstd"
-' sh "$out"
+# build NAME [ix flags...]: the module built with the flags, compressed
+build() {
+    name=$1; shift
+
+    "$ix/ix" run set/wasm/decode "$@" -- sh -c '
+        set -eu
+        zstd -19 -f -q -o "$1/$2" "$IX_IMAGE_MAGICK_DECODE_WASM"
+        sha256sum "$IX_IMAGE_MAGICK_DECODE_WASM" "$1/$2"
+    ' sh "$out" "$name"
+}
+
+build decode.wasm.zstd
+build decode.simd128.wasm.zstd --simd128=1

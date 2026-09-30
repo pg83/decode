@@ -21,3 +21,9 @@ wasm stack in mind: the module is linked with `-z stack-size=8388608`.
 
 Formats: PNG, JPEG, WebP, TIFF, JPEG 2000, JPEG XL, GIF, BMP, PNM/PAM,
 TGA, PCX, SGI, MIFF and the other coders built into ImageMagick.
+
+A release carries two builds. `decode.wasm.zstd` is plain wasm32.
+`decode.simd128.wasm.zstd` is the same module with wasm simd128
+(`-msimd128`): JPEG XL decodes about three times faster in it, on a
+runtime that has SIMD, such as wasm2c with the generated C compiled for
+x86-64-v3.
