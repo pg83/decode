@@ -11,7 +11,7 @@
 
 set -eu
 
-IX_REV=a02b8c210a7f413d220d0c90747913e35b4730e2
+IX_REV=80eb828902d0d1730a2f1406e4c2fa9f9ac1bd57
 IX_REPO=https://github.com/pg83/ix
 
 if [ "$#" -ne 1 ]; then
