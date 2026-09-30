@@ -42,9 +42,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            autopoint binutils bison bzip2 ca-certificates clang cmake curl file flex gettext \
-            git gperf gzip imagemagick libclang-rt-dev lld llvm m4 make meson ninja-build \
-            perl pkg-config python3 rsync xz-utils zstd
+            autoconf automake autopoint binutils bison bzip2 ca-certificates clang cmake curl \
+            file flex gettext git gperf gzip imagemagick libarchive-tools libclang-rt-dev \
+            libtool libtool-bin lld llvm m4 make meson nasm ninja-build perl pkg-config \
+            python3 rsync xz-utils zstd
           magick -version
           magick -list format | grep -iE '^ +(JPEG|JXL|JP2|PNG|TIFF|WEBP) ' || true
 
