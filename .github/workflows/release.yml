@@ -1,8 +1,8 @@
 name: Release
 
-# Every commit on main is a release: build decode.wasm through IX at the
-# revision pinned in build.sh, plain and with simd128, then publish both as
-# the next numeric tag.
+# Every commit on main is a release: four jobs build the four modules
+# through IX at the revision pinned in build.sh, one module each, and a
+# fifth publishes them together as the next numeric tag.
 on:
   push:
     branches:
@@ -20,10 +20,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish decode.wasm
+  build:
+    name: Build ${{ matrix.module }}
     runs-on: ubuntu-26.04
     timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [decode, decode.simd128, pdf, djvu]
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,7 +57,7 @@ jobs:
       - name: Enable unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      - name: Build decode.wasm through IX
+      - name: Build ${{ matrix.module }}.wasm through IX
         env:
           IX_FLAGS: all_system=1,intl_ver=no,system_aclocal_path=/usr/share/aclocal
           IX_ROOT: ${{ runner.temp }}/ix
@@ -61,30 +65,60 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p "$RUNNER_TEMP/out" "$RUNNER_TEMP/diagnostics"
-          ./build.sh "$RUNNER_TEMP/out" 2>&1 | tee "$RUNNER_TEMP/diagnostics/build.log"
+          ./build.sh "${{ matrix.module }}" "$RUNNER_TEMP/out" 2>&1 | tee "$RUNNER_TEMP/diagnostics/build.log"
 
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: build-log
+          name: build-log-${{ matrix.module }}
           path: ${{ runner.temp }}/diagnostics/*
           if-no-files-found: error
           retention-days: 7
+
+      - name: Upload the module
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: module-${{ matrix.module }}
+          path: ${{ runner.temp }}/out/${{ matrix.module }}.wasm.zstd
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read the pinned IX revision
+        id: ix
+        run: echo "rev=$(sed -n 's/^IX_REV=//p' build.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Download the modules
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: module-*
+          path: ${{ runner.temp }}/out
+          merge-multiple: true
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
+          cd "$RUNNER_TEMP/out"
+          modules="decode.wasm.zstd decode.simd128.wasm.zstd pdf.wasm.zstd djvu.wasm.zstd"
+          ls -la $modules
           last=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName \
             --jq '[.[].tagName | select(test("^[1-9][0-9]*$")) | tonumber] | max // 0')
           tag=$((last + 1))
-          sums=$(cd "$RUNNER_TEMP/out" && sha256sum decode.wasm.zstd decode.simd128.wasm.zstd)
-          notes="decode.wasm from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA"
+          sums=$(sha256sum $modules)
+          notes="decode, pdf and djvu modules from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA"
           notes="$notes"$'\n\n'"$sums"
-          gh release create "$tag" \
-            "$RUNNER_TEMP/out/decode.wasm.zstd" "$RUNNER_TEMP/out/decode.simd128.wasm.zstd" \
+          gh release create "$tag" $modules \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "$tag" --notes "$notes"
           echo "released $tag"
@@ -95,3 +129,5 @@ jobs:
           subject-path: |
             ${{ runner.temp }}/out/decode.wasm.zstd
             ${{ runner.temp }}/out/decode.simd128.wasm.zstd
+            ${{ runner.temp }}/out/pdf.wasm.zstd
+            ${{ runner.temp }}/out/djvu.wasm.zstd
