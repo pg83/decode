@@ -4,7 +4,7 @@ Decoders as pure WebAssembly modules, built by
 [ix](https://github.com/pg83/ix) for the `wasm32-none` target: each
 module imports nothing, exports `memory`, `malloc`, `free` and a few
 functions, and is proven pure and run through a loader by the build
-behind it. A release carries four:
+behind it. A release carries five:
 
 | module | from | what it does |
 |---|---|---|
@@ -12,6 +12,7 @@ behind it. A release carries four:
 | `decode.simd128.wasm` | the same with `-msimd128` | JPEG XL decodes about three times faster on a runtime with SIMD, such as wasm2c with the generated C compiled for x86-64-v3 |
 | `pdf.wasm` | `lib/pdf/ium/wasm` | PDFium: open a PDF from memory, count and measure its pages, render one |
 | `djvu.wasm` | `lib/djvulibre/wasm` | DjVuLibre: the same for a DjVu |
+| `magic.wasm` | `lib/magic/wasm` | libmagic with its compiled database: the MIME type of bytes |
 
 A host keeps an instance per worker, hands it whole files through the
 exported `malloc`, and reads results back out of linear memory. A trap
@@ -50,11 +51,23 @@ file's bytes until `pdf_close`, so the host keeps them in memory that
 long; DjVuLibre copies them in `djvu_open`. `djvu_error()` names the cause
 of the last trap, as a C string.
 
+## magic
+
+    magic_mime(data, len) -> type | 0
+    magic_mime_error() -> cause | 0
+
+The MIME type of the bytes, as `file --mime-type` names it, a C string
+in the module's memory valid until the next call; empty bytes are
+`application/x-empty`, bytes no entry matches `application/octet-stream`.
+The compiled magic database is in the module and loaded on an instance's
+first call. 0 is a failure the library noticed itself, which
+`magic_mime_error()` names.
+
 ## Building
 
     ./build.sh MODULE OUT_DIR
 
-builds one of `decode`, `decode.simd128`, `pdf`, `djvu` through IX at the
-revision pinned in `build.sh` and writes `OUT_DIR/MODULE.wasm.zstd`. The
-release workflow runs the four in parallel and publishes them as the next
-numeric tag, with their sha256 sums in the notes.
+builds one of `decode`, `decode.simd128`, `pdf`, `djvu`, `magic` through
+IX at the revision pinned in `build.sh` and writes `OUT_DIR/MODULE.wasm.zstd`.
+The release workflow runs the five in parallel and publishes them as the
+next numeric tag, with their sha256 sums in the notes.

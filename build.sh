@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds one pure wasm module through IX and writes it, zstd-compressed,
 # into the given directory. To move to a newer IX, change IX_REV and
-# commit: every commit on main is a release of all four modules.
+# commit: every commit on main is a release of all five modules.
 #
 #   ./build.sh MODULE OUT_DIR
 #
@@ -9,6 +9,7 @@
 #   decode.simd128  the same with wasm simd128
 #   pdf             PDFium, lib/pdf/ium/wasm
 #   djvu            DjVuLibre, lib/djvulibre/wasm
+#   magic           libmagic, lib/magic/wasm
 #
 # Needs the system build tools IX expects under all_system (clang, lld,
 # llvm, cmake, ninja, make, meson, perl, python3, pkg-config, m4, ...),
@@ -16,7 +17,7 @@
 
 set -eu
 
-IX_REV=191fcdd89313a0898500efe467c7077fe8b2ca22
+IX_REV=ebd6913189bb173a46722d297229db62c2219fe6
 IX_REPO=${IX_REPO:-https://github.com/pg83/ix}
 
 if [ "$#" -ne 2 ]; then
@@ -36,6 +37,7 @@ case $module in
     decode.simd128) set=set/wasm/decode; flags="--simd128=1"; path=IX_IMAGE_MAGICK_DECODE_WASM;;
     pdf)            set=set/wasm/pdf; flags=""; path=IX_PDFIUM_WASM;;
     djvu)           set=set/wasm/djvu; flags=""; path=IX_DJVULIBRE_WASM;;
+    magic)          set=set/wasm/magic; flags=""; path=IX_MAGIC_WASM;;
     *)
         echo "$0: no module named $module" >&2
         exit 2;;

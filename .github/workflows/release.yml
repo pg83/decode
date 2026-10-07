@@ -1,8 +1,8 @@
 name: Release
 
-# Every commit on main is a release: four jobs build the four modules
+# Every commit on main is a release: five jobs build the five modules
 # through IX at the revision pinned in build.sh, one module each, and a
-# fifth publishes them together as the next numeric tag.
+# sixth publishes them together as the next numeric tag.
 on:
   push:
     branches:
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [decode, decode.simd128, pdf, djvu]
+        module: [decode, decode.simd128, pdf, djvu, magic]
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -110,13 +110,13 @@ jobs:
         run: |
           set -eu
           cd "$RUNNER_TEMP/out"
-          modules="decode.wasm.zstd decode.simd128.wasm.zstd pdf.wasm.zstd djvu.wasm.zstd"
+          modules="decode.wasm.zstd decode.simd128.wasm.zstd pdf.wasm.zstd djvu.wasm.zstd magic.wasm.zstd"
           ls -la $modules
           last=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName \
             --jq '[.[].tagName | select(test("^[1-9][0-9]*$")) | tonumber] | max // 0')
           tag=$((last + 1))
           sums=$(sha256sum $modules)
-          notes="decode, pdf and djvu modules from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA"
+          notes="decode, pdf, djvu and magic modules from ix ${{ steps.ix.outputs.rev }}, decode $GITHUB_SHA"
           notes="$notes"$'\n\n'"$sums"
           gh release create "$tag" $modules \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
@@ -131,3 +131,4 @@ jobs:
             ${{ runner.temp }}/out/decode.simd128.wasm.zstd
             ${{ runner.temp }}/out/pdf.wasm.zstd
             ${{ runner.temp }}/out/djvu.wasm.zstd
+            ${{ runner.temp }}/out/magic.wasm.zstd
