@@ -31,8 +31,10 @@ optional (0, 0): a file name whose extension names the format for files
 without a magic number (TGA, raw RGB); a magic number in the data always
 wins. 0 is a failure the library noticed itself.
 
-Formats: PNG, JPEG, WebP, TIFF, JPEG 2000, JPEG XL, GIF, BMP, PNM/PAM,
-TGA, PCX, SGI, MIFF and the other coders built into ImageMagick.
+Formats: PNG, JPEG, WebP, TIFF, JPEG 2000, JPEG XL, AVIF, GIF, BMP,
+PNM/PAM, TGA, PCX, SGI, MIFF and the other coders built into ImageMagick.
+AVIF comes through libheif with libaom's decoder alone, on one thread;
+HEIC is not in.
 
 ## pdf and djvu
 
